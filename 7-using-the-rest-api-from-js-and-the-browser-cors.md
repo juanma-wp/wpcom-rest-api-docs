@@ -1,3 +1,5 @@
+# Using the REST API from JS and the Browser
+
 The [REST API](https://developer.wordpress.com/docs/api/) can be used directly from the browser using Javascript. If you whitelist the domains you want to use for your application, we will send the correct [CORS](https://developer.mozilla.org/en-US/docs/Web/HTTP/Access_control_CORS) headers. Both authenticated and unauthenticated calls are supported. To make authenticated requests follow the [implicit section of the OAuth documentation](https://developer.wordpress.com/docs/oauth2/) to get a user token.
 
 All examples use plain JavaScript with the Fetch API.
