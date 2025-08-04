@@ -1,19 +1,21 @@
-## Namespaces & Versions
+# Namespaces & Versions
 
-WordPress.com REST API 
+The WordPress.com REST API is organized into distinct namespaces and versions that provide different sets of functionality. Each namespace serves a specific purpose and follows its own versioning scheme, allowing for independent evolution of different API components while maintaining backwards compatibility.
+
+This document outlines the available namespaces (`/rest/`, `/wp/`, and `/wpcom/`), their versions, and what functionality each provides. Understanding these namespaces and when to use each one is crucial for effectively integrating with the WordPress.com API ecosystem.
 
 
-### `/rest/` namespace
+## `/rest/` namespace
 
 All `/rest/` namespace versions are available under the **WP.COM API** option in the top selector of the API Console.
 
-#### **v1**
+### **v1**
 
   - URL: `https://public-api.wordpress.com/rest/v1/`
   - The original REST API for WordPress.com sites.
   - Covered a broad set of endpoints for sites, posts, users, stats, etc.
 
-#### **v1.1 — v1.4**
+### **v1.1 — v1.4**
   - URLs:  
     - `https://public-api.wordpress.com/rest/v1.1/`  
     - `https://public-api.wordpress.com/rest/v1.2/`  
@@ -22,11 +24,11 @@ All `/rest/` namespace versions are available under the **WP.COM API** option in
   - Incremental updates and improvements: each version added new endpoints or modified existing ones while preserving backward compatibility.
   - Sometimes, duplicate endpoints exist across versions (e.g., `v1/sites/${site}/users` and `v1.1/sites/${site}/users`). Usually, the newer version offers extra fields, improved performance, or bug fixes.
 
-### `/wp/` namespace
+## `/wp/` namespace
 
 The `/wp/v2` namespace is available under the **WP REST API** option in the top selector of the API Console.
 
-#### **v2**
+### **v2**
 
   - URL: `https://public-api.wordpress.com/wp/v2/`
   - Mirrors the official WordPress (self-hosted) core REST API.
@@ -34,11 +36,11 @@ The `/wp/v2` namespace is available under the **WP REST API** option in the top 
   - Provides endpoints for posts, pages, taxonomies, users, etc.
   - Adheres to the standards defined by the WordPress core team, making it the main and most "official" namespace for WordPress REST endpoints.
 
-### `/wpcom/` namespace
+## `/wpcom/` namespace
 
 All `/wpcom/` namespace versions are available under the **WP REST API** option in the top selector of the API Console.
 
-#### **v2, v3**
+### **v2, v3**
 
   - URLs:  
     - `https://public-api.wordpress.com/wpcom/v2/`  
