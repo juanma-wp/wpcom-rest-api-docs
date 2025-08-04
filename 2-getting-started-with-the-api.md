@@ -1,6 +1,6 @@
 # Getting Started with the API
 
-## What is it?
+## What's the WordPress.com REST API
 
 WordPress.com REST API allows you to view, create or edit content on any WordPress.com site, as well as any self-hosted (WordPress.org) site connected via [Jetpack](https://jetpack.me/). This includes not only blog posts and pages but also comments, tags, categories, media, site stats, notifications, sharing settings, user profiles, and many other WordPress.com features.
 
@@ -140,8 +140,6 @@ https://public-api.wordpress.com/wp/v2/sites/yoursite.com/posts
 
 The WordPress.com REST API supports both authenticated and unauthenticated requests, depending on the endpoint and the data you're trying to access. Understanding when and how to authenticate is crucial for successful API integration.
 
-### When Authentication Is Required
-
 **Unauthenticated requests** work for:
 - Public site information (e.g., site details, public posts)
 - Reading public content from WordPress.com sites
@@ -157,10 +155,12 @@ The WordPress.com REST API supports both authenticated and unauthenticated reque
 ### Authentication Methods
 
 The WordPress.com REST API supports two primary authentication methods:
+- Personal Access Token
+- OAuth2 Authentication
 
 #### Personal Access Token
 
-**Best for:** Personal projects, scripts, testing, and applications accessing your own sites.
+Personal Access Tokens provide a simple and secure way to authenticate API requests without implementing the full OAuth2 flow. They are ideal for developers working on personal projects, command-line tools, scripts, and applications that only need to access their own WordPress.com sites. Since these tokens have the same permissions as your WordPress.com account, they should be kept secure and only used in trusted applications that you control.
 
 **How to get a Personal Access Token:**
 1. Log in to your WordPress.com account
@@ -173,6 +173,7 @@ The WordPress.com REST API supports two primary authentication methods:
 **How to use in requests:**
 Include the token in the `Authorization` header using the `Bearer` token format:
 
+_Example with [CURL](https://curl.se/)_
 ```bash
 # Using curl
 curl -H "Authorization: Bearer YOUR_ACCESS_TOKEN" \
@@ -186,6 +187,7 @@ curl -X POST \
      https://public-api.wordpress.com/wp/v2/sites/YOUR_SITE_ID/posts
 ```
 
+_Example in Javasript_
 ```javascript
 // Using JavaScript fetch
 fetch('https://public-api.wordpress.com/rest/v1.4/me', {
@@ -198,6 +200,7 @@ fetch('https://public-api.wordpress.com/rest/v1.4/me', {
 .then(data => console.log(data));
 ```
 
+_Example in PHP_
 ```php
 // Using PHP with cURL
 $access_token = 'YOUR_ACCESS_TOKEN';
@@ -213,7 +216,7 @@ $data = json_decode($response);
 
 #### OAuth2 Authentication
 
-**Best for:** Third-party applications that need to access other users' sites and data.
+OAuth2 authentication is a more secure approach and the best option for third-party applications that need to access other users' sites and data.
 
 OAuth2 provides secure, user-controlled access delegation, allowing your application to act on behalf of users without storing their passwords. The user explicitly grants permission to your application through WordPress.com's authorization interface.
 
@@ -226,9 +229,9 @@ OAuth2 provides secure, user-controlled access delegation, allowing your applica
 
 For detailed OAuth2 implementation guidance, including code examples and security considerations, refer to the [OAuth2 Authentication](5-oauth2-authentication.md) documentation.
 
-### Request Examples
+## Request Examples
 
-#### Unauthenticated Request Example
+### Unauthenticated Request Example
 
 ```bash
 # Get public information about a site
@@ -250,7 +253,7 @@ fetch('https://public-api.wordpress.com/rest/v1.4/sites/en.blog.wordpress.com/')
   });
 ```
 
-#### Authenticated Request Examples
+### Authenticated Request Examples
 
 ```bash
 # Get your user profile (requires authentication)
