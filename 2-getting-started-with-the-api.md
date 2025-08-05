@@ -16,29 +16,50 @@ There are two ways to explore the endpoints available for WordPress.com REST API
 
 Making unauthenticated requests is simple. Since there are no special headers required, you can even open this one in your browser to see what it will return: [https://public-api.wordpress.com/rest/v1.1/sites/en.blog.wordpress.com/posts/?number=2\&pretty=true](https://public-api.wordpress.com/rest/v1.1/sites/en.blog.wordpress.com/posts/?number=2&pretty=true)
 
-Making authenticated requests requires a few more steps. (If you’re already familiar with OAuth2, now might be a good time to skip directly to the [technical documentation](https://developer.wordpress.com/docs/oauth2/).)
+Making authenticated requests requires a few more steps. To make authenticated requests, you need to provide a "Bearer" token in the Authorization header. You can obtain this token in two ways:
 
-We use the OAuth2 protocol, which is simply a way for your application to *act on behalf of a user.* This is why you need to create a client application, even for a single-user app; the client mediates between any WordPress.com user and our API. For a single-user application, this can be confusing, because in this case you are both the client and the user who is logging in. However, one client can acquire tokens for many users, similar to a professional dog-walker who’s been entrusted with many leashes, or a hotel valet with the keys to many cars.
+1. **Personal Access Token** - Simple and quick for personal projects and testing
+2. **OAuth2 authentication** - The most secure and granular way, required for third-party applications
 
-One of the features of OAuth is the use of *tokens*, strings which act as a sort of key. They represent the user’s consent to act on their behalf. This has several advantages: client apps do not need to request or store user’s passwords, and tokens can expire or be revoked on a per-client basis. Unlike a username \+ password combination, which can be used all over the place, tokens can only be used by the client that requested them.
+Both methods give you an access token that you include in your requests like this: `Authorization: Bearer YOUR_ACCESS_TOKEN`. Check the [Authentication methods](#) section for detailed instructions on both approaches.
 
-If you’ve ever logged into a website using your Facebook or Twitter login, you’ve seen OAuth in action. The interesting part is the way it sends you over to Facebook, asking Facebook to log you in and allow access. You can think of it as a three-way conversation:
+We recommend OAuth2 authentication as the most secure and granular way to access the WordPress.com REST API. If you're already familiar with OAuth2, you can skip directly to the [technical documentation](https://developer.wordpress.com/docs/oauth2/).
 
-**User:** “I’d like to make a post via this API client.”  
-**Client:** “Okay. Hey, WordPress.com, I’d like to do something on behalf of this user. Can you ask them if it’s okay?”  
-**WordPress.com:** “Sure. Hey, user, is it okay if Client acts on your behalf?”  
-**User:** “Yes, that is okay. I trust this client to take actions for me in the future.”  
-**WordPress.com:** “Okay, Client, here is a token that will allow you to take actions for this user. Keep it secret. Keep it safe.”  
-*(later)*  
-**Client:** “Hi, WordPress.com. I’m making a post on behalf of a particular user. Here are all the details about the post, and to go with it, here’s the token that shows I’m allowed to post as this user.”
+OAuth2 lets your application act on behalf of a user without ever seeing their password. Here's how it works: When someone wants to use your app with their WordPress.com account, your app sends them to WordPress.com to log in. WordPress.com shows them exactly what your app wants to do (like read their posts or create new ones) and asks if that's okay. If they say yes, WordPress.com gives your app a special access token. This token is like a temporary key that lets your app do only the things the user agreed to.
 
-So, how does this work from the client’s perspective? The first thing you need to do is send the user over to WordPress.com to request access. You’ll link them to a specific URL that includes, most importantly, **your client ID** and a **redirect URL**. The client ID tells us which client is making the request; the redirect URL is where we’ll send the user back to. As a security measure, we ask for the redirect URL to be defined in your application’s settings as well; if the one you pass in doesn’t match the one in your settings, the request cannot be completed.
+You can think of it as a three-way conversation:
 
-When the user authorizes the request, we’ll send them back to your redirect URL, but with a bonus: the token will be tacked on to the end. Your application should be prepared to handle that URL, extracting incoming tokens which it can then save for later use.
+- **User:** “I’d like to make a post via this API client.”  
+- _**Client (App):**_ “Okay. Hey, WordPress.com, I’d like to do something on behalf of this 
+user. Can you ask them if it’s okay?”  
+- **WordPress.com:** “Sure. Hey, user, is it okay if Client acts on your behalf?”  
+- **User:** “Yes, that is okay. I trust this client to take actions for me in the 
+future.”  
+- **WordPress.com:** “Okay, Client, here is a token that will allow you to take 
+actions for this user. Keep it secret. Keep it safe.”  
 
-Once you have your token, you can authenticate any API request by including it in the request headers. You do this by including a header called “`Authorization"` with the value “`BEARER your_token_here".`
+Once the Client (App) has obtained the token, it can make authenticated requests to WordPress.com. Here's how a typical interaction works:
 
-Now that you understand the basics of the authentication process, refer to the [OAuth2 docs](https://developer.wordpress.com/docs/oauth2/) for a more technical walkthrough, including code examples.
+- _**Client (App):**_ "Hello WordPress.com, I'd like to create a new post. Here's my access token proving I'm authorized to act on behalf of the user, along with the post title, content, and other details."
+
+- **WordPress.com:** "I've validated your token and confirmed you have permission to create posts. The post has been successfully created and published. Here's the response with the new post ID, URL, and other metadata."
+
+This OAuth2 token-based authentication workflow provides secure, granular access control - the Client can only perform actions that the user explicitly authorized during the OAuth flow. The token can be revoked at any time if needed, and WordPress.com validates the token's permissions on every request.
+
+
+
+The beauty of this system is that users stay in control. They can see exactly what your app is asking for, and they can revoke access anytime. Your app never stores passwords, and if a token gets compromised, it only affects that one app's access—not the user's entire account.
+
+You've probably seen this before when logging into websites using your Google or Facebook account. The process works the same way: you click "Log in with Facebook," get sent to Facebook to confirm, and then get redirected back to the original site.
+
+From your app's perspective, the process involves a few steps:
+- First, you register your application on WordPress.com to get a client ID. 
+- Then you direct users to WordPress.com with a special link that includes your client ID and tells WordPress.com where to send the user back to. 
+- When users authorize your app, WordPress.com redirects them back to your app with an authorization code. You exchange this code for an access token using your client secret, and then you can use that token to make API requests on behalf of the user.
+
+Once you have an access token, making authenticated requests is straightforward. You include the token in the Authorization header of your requests like this: `Authorization: Bearer your_token_here`.
+
+For complete implementation details, code examples, and security best practices, check out the [OAuth2 authentication guide](https://developer.wordpress.com/docs/oauth2/).
 
 ## Base URL Structure
 
@@ -97,8 +118,6 @@ To use site-specific endpoints, you'll need to obtain your site's unique numeric
 3. Execute the request to retrieve all sites associated with your account
 4. Locate the `ID` field in the response for your desired site
 
-**Understanding the Response**
-
 The `/rest/v1.1/me/sites` endpoint returns comprehensive details about all sites associated with your WordPress.com account, including:
 
 - `ID`: The unique numeric site identifier (what you need for API calls)
@@ -127,14 +146,16 @@ The `/rest/v1.1/me/sites` endpoint returns comprehensive details about all sites
 }
 ```
 
-### Alternative URL Formats (Not Recommended)
+### Alternative URL Formats
 
-While these formats may work in some cases, they are not recommended due to inconsistency across different site configurations:
+You may encounter some alternative URL formats:
 
-```
-https://yoursite.com/wp-json/wp/v2/posts
-https://public-api.wordpress.com/wp/v2/sites/yoursite.com/posts
-```
+- **Direct site access**, like `https://yoursite.com/wp-json/wp/v2/posts` - This format works only for self-hosted sites with Jetpack. May fail due to security settings, firewall rules, or authentication issues.
+
+- **Domain-based WordPress.com access**, like `https://public-api.wordpress.com/wp/v2/sites/yoursite.com/posts` - This format is unreliable for sites with custom domains, DNS configurations, or when domains change.
+
+
+To avoid any issues the recommended approach is to use the format with numeric site IDs which is more reliable, faster, it works consistently across all site types, and supports full WordPress.com features and authentication methods.
 
 ## Authentication Requirements
 
@@ -145,12 +166,41 @@ The WordPress.com REST API supports both authenticated and unauthenticated reque
 - Reading public content from WordPress.com sites
 - Accessing publicly available stats and data
 
+_Examples of unauthenticated requests:_
+
+```bash
+# Get public information about a site
+curl https://public-api.wordpress.com/rest/v1.4/sites/en.blog.wordpress.com/
+
+# Get public posts from a site
+curl https://public-api.wordpress.com/wp/v2/sites/discover.wordpress.com/posts?per_page=5
+```
+
 **Authentication is required** for:
 - Creating, editing, or deleting content (posts, pages, comments)
 - Accessing private sites or private content
 - Managing site settings and configuration
 - Accessing user-specific data (notifications, followed sites, personal stats)
 - Any operation that would require a user to be logged in when using WordPress.com directly
+
+_Examples of authenticated requests (require a token):_
+
+```bash
+# Get your user profile (requires authentication)
+curl -H "Authorization: Bearer YOUR_ACCESS_TOKEN" \
+     https://public-api.wordpress.com/rest/v1.4/me
+
+# Create a new post (requires authentication)
+curl -X POST \
+     -H "Authorization: Bearer YOUR_ACCESS_TOKEN" \
+     -H "Content-Type: application/json" \
+     -d '{"title":"My New Post","content":"This is the post content","status":"publish"}' \
+     https://public-api.wordpress.com/wp/v2/sites/YOUR_SITE_ID/posts
+
+# Get your site's stats (requires authentication)
+curl -H "Authorization: Bearer YOUR_ACCESS_TOKEN" \
+     https://public-api.wordpress.com/rest/v1.4/sites/YOUR_SITE_ID/stats
+```
 
 ### Authentication Methods
 
@@ -160,7 +210,7 @@ The WordPress.com REST API supports two primary authentication methods:
 
 #### Personal Access Token
 
-Personal Access Tokens provide a simple and secure way to authenticate API requests without implementing the full OAuth2 flow. They are ideal for developers working on personal projects, command-line tools, scripts, and applications that only need to access their own WordPress.com sites. Since these tokens have the same permissions as your WordPress.com account, they should be kept secure and only used in trusted applications that you control.
+Personal Access Tokens provide a simple and driect way to get the token required to authenticate API requests without implementing the full OAuth2 flow. They are ideal for developers working on personal projects, command-line tools, scripts, and applications that only need to access their own WordPress.com sites. Since these tokens have the same permissions as your WordPress.com account, they should be kept secure and only used in trusted applications that you control.
 
 **How to get a Personal Access Token:**
 1. Log in to your WordPress.com account
@@ -170,6 +220,7 @@ Personal Access Tokens provide a simple and secure way to authenticate API reque
 5. Enter a descriptive name for your application
 6. Copy the generated token (you won't be able to see it again)
 
+<!--
 **How to use in requests:**
 Include the token in the `Authorization` header using the `Bearer` token format:
 
@@ -214,6 +265,8 @@ $response = curl_exec($curl);
 $data = json_decode($response);
 ```
 
+-->
+
 #### OAuth2 Authentication
 
 OAuth2 authentication is a more secure approach and the best option for third-party applications that need to access other users' sites and data.
@@ -224,117 +277,12 @@ OAuth2 provides secure, user-controlled access delegation, allowing your applica
 1. **Register your application** at [WordPress.com Apps](https://developer.wordpress.com/apps/)
 2. **Redirect users** to WordPress.com's authorization URL with your client ID
 3. **User grants permission** and is redirected back to your app with an authorization code
-4. **Exchange the code** for an access token using your client secret
+4. **Exchange the authorization code** for an access token using your client secret
 5. **Use the access token** in API requests
 
 For detailed OAuth2 implementation guidance, including code examples and security considerations, refer to the [OAuth2 Authentication](5-oauth2-authentication.md) documentation.
 
-## Request Examples
-
-### Unauthenticated Request Example
-
-```bash
-# Get public information about a site
-curl https://public-api.wordpress.com/rest/v1.4/sites/en.blog.wordpress.com/
-
-# Get public posts from a site
-curl https://public-api.wordpress.com/wp/v2/sites/discover.wordpress.com/posts?per_page=5
-```
-
-```javascript
-// JavaScript example for public data
-fetch('https://public-api.wordpress.com/rest/v1.4/sites/en.blog.wordpress.com/')
-  .then(response => response.json())
-  .then(data => {
-    console.log('Site info:', data);
-  })
-  .catch(error => {
-    console.error('Error:', error);
-  });
-```
-
-### Authenticated Request Examples
-
-```bash
-# Get your user profile (requires authentication)
-curl -H "Authorization: Bearer YOUR_ACCESS_TOKEN" \
-     https://public-api.wordpress.com/rest/v1.4/me
-
-# Create a new post (requires authentication)
-curl -X POST \
-     -H "Authorization: Bearer YOUR_ACCESS_TOKEN" \
-     -H "Content-Type: application/json" \
-     -d '{"title":"My New Post","content":"This is the post content","status":"publish"}' \
-     https://public-api.wordpress.com/wp/v2/sites/YOUR_SITE_ID/posts
-
-# Get your site's stats (requires authentication)
-curl -H "Authorization: Bearer YOUR_ACCESS_TOKEN" \
-     https://public-api.wordpress.com/rest/v1.4/sites/YOUR_SITE_ID/stats
-```
-
-```javascript
-// JavaScript example for authenticated requests
-const accessToken = 'YOUR_ACCESS_TOKEN';
-const siteId = 'YOUR_SITE_ID';
-
-// Get user profile
-fetch('https://public-api.wordpress.com/rest/v1.4/me', {
-  headers: {
-    'Authorization': `Bearer ${accessToken}`
-  }
-})
-.then(response => response.json())
-.then(data => console.log('User profile:', data));
-
-// Create a new post
-fetch(`https://public-api.wordpress.com/wp/v2/sites/${siteId}/posts`, {
-  method: 'POST',
-  headers: {
-    'Authorization': `Bearer ${accessToken}`,
-    'Content-Type': 'application/json'
-  },
-  body: JSON.stringify({
-    title: 'My New Post',
-    content: 'This is the post content',
-    status: 'publish'
-  })
-})
-.then(response => response.json())
-.then(data => console.log('New post created:', data));
-```
-
-```php
-// PHP example for authenticated requests
-$access_token = 'YOUR_ACCESS_TOKEN';
-$site_id = 'YOUR_SITE_ID';
-
-// Get user profile
-$curl = curl_init('https://public-api.wordpress.com/rest/v1.4/me');
-curl_setopt($curl, CURLOPT_HTTPHEADER, array(
-    'Authorization: Bearer ' . $access_token
-));
-curl_setopt($curl, CURLOPT_RETURNTRANSFER, true);
-$user_data = json_decode(curl_exec($curl));
-
-// Create a new post
-$post_data = array(
-    'title' => 'My New Post',
-    'content' => 'This is the post content',
-    'status' => 'publish'
-);
-
-$curl = curl_init('https://public-api.wordpress.com/wp/v2/sites/' . $site_id . '/posts');
-curl_setopt($curl, CURLOPT_POST, true);
-curl_setopt($curl, CURLOPT_POSTFIELDS, json_encode($post_data));
-curl_setopt($curl, CURLOPT_HTTPHEADER, array(
-    'Authorization: Bearer ' . $access_token,
-    'Content-Type: application/json'
-));
-curl_setopt($curl, CURLOPT_RETURNTRANSFER, true);
-$post_response = json_decode(curl_exec($curl));
-```
-
-### Authentication Troubleshooting
+### Authentication Troubleshooting and Best Practices
 
 #### Common Authentication Errors
 
@@ -358,6 +306,8 @@ $post_response = json_decode(curl_exec($curl));
 4. **Use OAuth2 for user-facing apps** - Don't use personal access tokens for applications that other users will authenticate with
 5. **Limit token scope** - Only request the minimum permissions necessary for your application
 
+
+<!-- TO-DO: Review this section later to complement info with OAuth2 Authentication -->
 ### Browser-Based Applications
 
 If you're building a browser-based application, you'll need to:
@@ -369,8 +319,7 @@ If you're building a browser-based application, you'll need to:
 For detailed guidance on browser-based implementations, see [Using the REST API from JS and the Browser](7-using-the-rest-api-from-js-and-the-browser-cors.md).
 
 
-
-
+<!-- TO-DO: Provide a better way to continue the learning journey -->
 ## [Next Steps](https://developer.wordpress.com/docs/api/getting-started/#2-next-steps)
 
 The [full documentation](https://developer.wordpress.com/docs/api/) is a great way to explore all the features of the API. You might also want to check out [our example apps](https://developer.wordpress.com/docs/api/rest-api-example-apps/), or familiarize yourself with the [development console](https://developer.wordpress.com/docs/api/console/).
