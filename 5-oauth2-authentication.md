@@ -1,12 +1,9 @@
 # OAuth2 Authentication
+[OAuth2](https://oauth.net/2/) lets applications securely access WordPress.com and Jetpack sites without needing users' passwords. It provides fine-grained control over what each app can access.
 
-[OAuth2](https://oauth.net/2/) is a secure authentication protocol that enables applications to interact with WordPress.com sites and self-hosted WordPress sites running Jetpack without requiring users to share their sensitive credentials directly with third-party applications. This approach provides granular permission control and enhanced security for both users and developers.
+Unlike [Application Passwords](https://wordpress.com/support/security/two-step-authentication/application-specific-passwords/) which give full access, OAuth2 lets apps request only the specific permissions they need through "scopes". When users authorize an app, they can see and control exactly what access they're granting.
 
-## Understanding OAuth2 for WordPress.com
-
-OAuth2 represents a sophisticated authentication framework designed specifically for **third-party applications** that need controlled access to user data. [Unlike Application Passwords](https://wordpress.com/support/security/two-step-authentication/application-specific-passwords/) which grant comprehensive administrative access, OAuth2 implements a **granular permission system through scopes** that allows applications to request only the specific access levels they need.
-
-When users authorize your application through OAuth2, they authenticate using their existing WordPress.com credentials and can see exactly what permissions your application is requesting. They can then choose to grant or deny specific access levels, providing transparency and control over their data.
+Users sign in with their WordPress.com account and can approve or deny the requested permissions, maintaining control over their data while safely connecting apps.
 
 ## Prerequisites
 
@@ -35,7 +32,7 @@ This is where the OAuth2 flow begins. Users are presented with an authorization 
 **Required Parameters**:
 - `client_id`: Your application's client ID
 - `redirect_uri`: Must match registered redirect URI
-- `response_type`: `"code"` for Authorization Code Flow or `"token"` for Implicit Flow
+- `response_type`: `"code"` for [Authorization Code Flow](authorization-code-flow-recommended) or `"token"` for [Implicit Flow](#implicit-flow-legacy)
 
 **Optional Parameters**:
 - `scope`: Space-separated permissions (defaults to single-blog access)
@@ -222,7 +219,7 @@ sequenceDiagram
     Note over User,TokenEndpoint: OAuth2 Authorization Code Flow
     
     User->>App: 1. Initiate login request
-    App->>AuthServer: 2. Authorization request<br/>/oauth2/authorize
+    App->>AuthServer: 2. Authorization request<br/>/oauth2/authorize<br/>response_type=code
     AuthServer->>App: 3. Return authorization page
     App->>User: 4. Display authorization page
     User->>AuthServer: 5. Login and approve permissions
@@ -248,7 +245,7 @@ sequenceDiagram
     Note over User,AuthServer: OAuth2 Implicit Flow (Legacy)
     
     User->>App: 1. Initiate login request
-    App->>AuthServer: 2. Authorization request<br/>/oauth2/authorize?response_type=token
+    App->>AuthServer: 2. Authorization request<br/>/oauth2/authorize<br>response_type=token
     AuthServer->>App: 3. Return authorization page
     App->>User: 4. Display authorization page
     User->>AuthServer: 5. Login and approve permissions
@@ -305,7 +302,9 @@ Direct users to the authorization endpoint with the required parameters:
 
 - **`client_id`**: Your application's client ID
 - **`redirect_uri`**: Must match the URI registered in your application settings
-- **`response_type`**: Use `"code"` for Authorization Code Flow or `"token"` for Implicit Flow
+- **`response_type`**: Use `"code"` for [Authorization Code Flow](authorization-code-flow-recommended) or `"token"` for [Implicit Flow](#implicit-flow-legacy)
+
+ 
 
 #### Optional Parameters
 
@@ -329,7 +328,7 @@ window.location.href = authUrl;
 
 ### Step 2: Authorization Code Exchange
 
-After user authorization, you'll receive an authorization code that must be exchanged for an access token.
+After user authorization, you'll receive (at the `redirect_url` location) an authorization code that must be exchanged for an access token.
 
 #### Server-Side Token Exchange
 
@@ -401,7 +400,7 @@ Different token scopes provide different access levels:
 
 ### Client-Side (Implicit) OAuth
 
-For client-side applications, tokens are returned in the URL fragment:
+For client-side applications, tokens can be returned in the URL fragment using the [Implicit Flow](#implicit-flow-legacy):
 
 ```
 https://yourapp.com/callback#access_token=TOKEN&expires_in=64800&token_type=bearer&site_id=BLOG_ID
@@ -472,7 +471,7 @@ GET https://public-api.wordpress.com/oauth2/token-info?client_id=your_client_id&
 
 ### Testing with Password Grant (Client Owners Only)
 
-Application owners can use the password grant for testing purposes:
+Application owners can use the password grant to get the authentication token for testing purposes:
 
 ```php
 $curl = curl_init( 'https://public-api.wordpress.com/oauth2/token' );
@@ -492,7 +491,7 @@ $access_token = $auth->access_token;
 
 **Important**: This method is for testing only and requires an Application Password if two-factor authentication is enabled.
 
-## Security Best Practices
+## Security Best Practices and Error Handling
 
 ### Implementation Guidelines
 
@@ -513,7 +512,7 @@ All OAuth2 communications must use HTTPS to protect tokens and authorization cod
 - Provide clear documentation about token lifecycle
 - Handle token expiration gracefully in your application
 
-## Error Handling
+### Error Handling
 
 Common OAuth2 errors and their meanings:
 
