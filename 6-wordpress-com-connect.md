@@ -1,12 +1,23 @@
 # WordPress.com Connect
 
+WordPress.com Connect is a streamlined authentication solution designed specifically for **"Login with WordPress.com"** functionality. It provides a secure and user-friendly way for millions of WordPress.com users to authenticate with your application using their existing WordPress.com credentials.
 
-"WordPress.com Connect" is a secure and easy way for millions of WordPress.com users to log in to your website or app. By integrating with "WordPress.com Connect", WordPress.com users can quickly log in and start using your service. Their profile information is shared with your app saving you the hassle of collecting name, email address, etc. You even get their Gravatar profile picture.
+> **Note**: WordPress.com Connect is a specialized implementation of OAuth2 focused on user authentication and identity verification. For full API access to WordPress.com sites and content management, see the complete [OAuth2 Authentication](5-oauth2-authentication.md) documentation.
+
+## What is WordPress.com Connect?
+
+WordPress.com Connect allows WordPress.com users to quickly log in to your service without creating new accounts. When users connect, your application receives their basic profile information (name, email, avatar) while they maintain control over their WordPress.com data and privacy.
+
+**Key characteristics of WordPress.com Connect**:
+- **Identity-focused**: Designed for user authentication, not content management
+- **Limited scope**: Access restricted to basic profile information via the `/me/` endpoint
+- **Simplified flow**: Optimized for "Login with WordPress.com" buttons
+- **User-friendly**: Familiar interface for millions of WordPress.com users
 
 ![Image showing the Connect with WordPress.com button.](https://s0.wp.com/i/wpcc-button.png)
   
 
-## Benefits
+### Benefits
 
 **Millions Of Users** – WordPress.com consists of millions of users and is growing every day. By adding WordPress.com Connect you will become part of a large family that makes it easy for WordPress.com users to explore new services.
 
@@ -14,148 +25,263 @@
 
 **Trusted Relationship** – Allow users to sign-in with the same credentials they use every day on WordPress.com. This takes the pain out of having to remember and manage a new log-in for another service.
 
-## Get Started
+## OAuth2 Implementation Details
 
-The first thing you need to do is create a new [WordPress.com Application](https://developer.wordpress.com/apps/), this will give you a chance to describe your application and how we should communicate with it. You should give your app the same title as your website as that information is used in the login form users see. Once configured you will receive your `CLIENT ID` and `CLIENT SECRET` to identify your app.
+WordPress.com Connect uses the **OAuth2 Authentication Endpoint** (`/oauth2/authenticate`) rather than the standard authorization endpoint. This specialized endpoint is optimized for identity verification and automatically limits token scope to basic profile access.
 
-Integrate with your app using the below instructions or use the [code examples in this Github Project](https://github.com/Automattic/wpcom-connect-examples "WP.com Connect Code Examples") for implementing in other languages (PHP, Python, Node.js, maybe others in the future).
+**Technical Flow**:
+1. **User Authorization**: Redirect to `/oauth2/authenticate` (not `/oauth2/authorize`)
+2. **Code Exchange**: Exchange authorization code at `/oauth2/token` (same as full OAuth2)
+3. **Limited Access**: Resulting token provides access only to `/me/` endpoint
+4. **Profile Data**: Retrieve user identity from `/rest/v1.1/me`
 
-## PHP example integration
+> For detailed technical information about the `/oauth2/authenticate` endpoint, see the [Authentication Endpoint section](5-oauth2-authentication.md#authentication-endpoint) in the OAuth2 documentation.
 
-Here is a simple example of how you can connect a WordPress.com user to your app or website and then get back their profile information.
+## Prerequisites
 
-When you created your WordPress.com Application above you will have received a number of items back. Let's set those as constants to make them easy to reference. (Please replace the values of the `CLIENT_ID`, `CLIENT_SECRET` and `REDIRECT_URL` with those values from your WordPress.com Application)
+Before implementing WordPress.com Connect, you need to register your application:
 
-You could [add these values on your `config.js` file](https://github.com/Automattic/wpcom-connect-examples/blob/master/php/config.php) 
+1. **Create a WordPress.com Application** at [developer.wordpress.com/apps](https://developer.wordpress.com/apps/)
+2. **Configure your application**: Use the same title as your website (shown in login forms)
+3. **Obtain credentials**: You'll receive a `CLIENT_ID` and `CLIENT_SECRET`
+4. **Set redirect URI**: Configure where users return after authentication
+
+Additional resources:
+- [Code examples in multiple languages](https://github.com/Automattic/wpcom-connect-examples) (PHP, Python, Node.js)
+- Complete technical documentation in [OAuth2 Authentication guide](5-oauth2-authentication.md)
+
+## Implementation Example (PHP)
+
+Here's a complete example demonstrating how to implement WordPress.com Connect for user authentication and profile retrieval.
+
+### Configuration Setup
+
+First, configure your application credentials. Replace these values with those from your [WordPress.com Application](https://developer.wordpress.com/apps/):
+
 ```php
-define('CLIENT_ID', 1);
-define('CLIENT_SECRET', 'your-client-secret');
-define('LOGIN_URL', 'http://localhost:8000');
-define('REDIRECT_URL', 'http://localhost:8000/connected.php');
+<?php
+// config.php - WordPress.com Connect Configuration
+define('CLIENT_ID', 'your_client_id');
+define('CLIENT_SECRET', 'your_client_secret');
+define('REDIRECT_URI', 'https://yourapp.com/auth-callback');
 
-// You do not need to change these settings
-define('REQUEST_TOKEN_URL', 'https://public-api.wordpress.com/oauth2/token');
+// WordPress.com OAuth2 endpoints (no changes needed)
 define('AUTHENTICATE_URL', 'https://public-api.wordpress.com/oauth2/authenticate');
+define('TOKEN_URL', 'https://public-api.wordpress.com/oauth2/token');
+define('USER_INFO_URL', 'https://public-api.wordpress.com/rest/v1.1/me');
 
-session_start(); // As we'll include this file in the rest of the files we can inititiate session here (we'll need the session to store the state value)
+session_start(); // Required for state parameter security
+?>
 ```
 
-### Create a Connect button
+> **Complete example**: See the [wpcom-connect-examples repository](https://github.com/Automattic/wpcom-connect-examples/blob/master/php/config.php) for additional language implementations.
 
-In the following code snippets we will just use the constant `CLIENT_ID` etc. to denote the values that are unique to your WordPress.com Application. First up we need to generate the button that your users will click in order to connect to WordPress.com. An anti-forgery "state" token is required to protect the security of your users. Create the variable with a good random number generator and save it on your server. The token is sent back to your server after the user authenticates and you must verify that the tokens match. The button's link should navigate a visitor to the authentication URL and include query parameters describing your application.
+### Step 1: Create Authorization URL
+
+Generate the "Connect with WordPress.com" button that redirects users to WordPress.com for authentication. This uses the **authentication endpoint** (not the standard authorization endpoint).
+
+**Security Note**: The `state` parameter prevents CSRF attacks and must be validated when users return.
 
 ```php
-require_once dirname(__FILE__) . '/config.php';
+<?php
+require_once 'config.php';
 
+// Generate secure state parameter for CSRF protection
 if (!isset($_SESSION['wpcc_state'])) {
-	$_SESSION['wpcc_state'] = md5(mt_rand());
+    $_SESSION['wpcc_state'] = bin2hex(random_bytes(16)); // More secure than md5(mt_rand())
 }
 
-$url_to = AUTHENTICATE_URL . '?' . http_build_query(array(
-	'response_type' => 'code',
-	'client_id'     => CLIENT_ID,
-	'state'         => $_SESSION['wpcc_state'],
-	'redirect_uri'  => REDIRECT_URL
-));
+// Build authentication URL using /oauth2/authenticate endpoint
+$auth_url = AUTHENTICATE_URL . '?' . http_build_query([
+    'response_type' => 'code',
+    'client_id'     => CLIENT_ID,
+    'redirect_uri'  => REDIRECT_URI,
+    'state'         => $_SESSION['wpcc_state'],
+    'scope'         => 'auth' // Limited scope for profile access only
+]);
 
-echo '<a href="' . $url_to . '"><img src="//s0.wp.com/i/wpcc-button.png" width="231" /></a>';
+// Display the Connect button
+echo '<a href="' . htmlspecialchars($auth_url) . '">';
+echo '<img src="https://s0.wp.com/i/wpcc-button.png" width="231" alt="Connect with WordPress.com" />';
+echo '</a>';
+?>
 ```
 
-This will output a button like so:
+This generates the familiar WordPress.com Connect button:
 
-![Image showing the Connect with WordPress.com button.](http://s0.wp.com/i/wpcc-button.png)
+![Image showing the Connect with WordPress.com button.](https://s0.wp.com/i/wpcc-button.png)
 
-### Request an access token
+### Step 2: Handle Authorization Response
 
-When the user clicks on the Connect button they will be brought to a form that asks them to log in and explains what information will be revealed to your app.
+When users click the Connect button, they see a WordPress.com authorization screen:
 
 ![oauth-approve](https://wpdeveloperstaging.files.wordpress.com/2024/02/e124d-oauth-approve.png)
 
-Once they complete this they will be sent to the "redirect URL" you have set in your WordPress.com Application (which is the value of the `REDIRECT_URL` constant above). When this URL is loaded please check that the state variable returned matches the one stored locally and also look for the `code` parameter. Using that `code` variable your app then sends a request to WordPress.com looking for a permanent access\_token which you can use from then on to reference this user. You can store the access\_token in your app for future use.
+After approval, WordPress.com redirects users back to your `redirect_uri` with an authorization code. Your callback handler must validate the state parameter and exchange the code for an access token:
 
 ```php
-require_once dirname( __FILE__ ) . '/config.php';
+<?php
+// auth-callback.php - Handle the authorization response
+require_once 'config.php';
 
-if ( ! isset( $_GET[ 'code' ] ) ) {
-	die( 'Warning! Visitor may have declined access or navigated to the page without being redirected.' );
+// Validate authorization response
+if (!isset($_GET['code'])) {
+    die('Error: No authorization code received. User may have declined access.');
 }
 
-if ( $_GET[ 'state' ] !== $_SESSION[ 'wpcc_state' ] ) {
-	die( 'Warning! State mismatch. Authentication attempt may have been compromised.' );
+if (!isset($_GET['state']) || $_GET['state'] !== $_SESSION['wpcc_state']) {
+    die('Error: State mismatch. Possible CSRF attack detected.');
 }
 
-$curl = curl_init( REQUEST_TOKEN_URL );
-curl_setopt( $curl, CURLOPT_POST, true );
-curl_setopt( $curl, CURLOPT_POSTFIELDS, array(
-	'client_id'     =&amp;amp;amp;gt; CLIENT_ID,
-	'redirect_uri'  =&amp;amp;amp;gt; REDIRECT_URL,
-	'client_secret' =&amp;amp;amp;gt; CLIENT_SECRET,
-	'code'          =&amp;amp;amp;gt; $_GET[ 'code' ],
-	'grant_type'    =&amp;amp;amp;gt; 'authorization_code'
-) );
+// Exchange authorization code for access token
+$curl = curl_init(TOKEN_URL);
+curl_setopt_array($curl, [
+    CURLOPT_POST => true,
+    CURLOPT_POSTFIELDS => [
+        'client_id'     => CLIENT_ID,
+        'client_secret' => CLIENT_SECRET,
+        'code'          => $_GET['code'],
+        'grant_type'    => 'authorization_code',
+        'redirect_uri'  => REDIRECT_URI
+    ],
+    CURLOPT_RETURNTRANSFER => true,
+    CURLOPT_SSL_VERIFYPEER => true
+]);
 
-curl_setopt( $curl, CURLOPT_RETURNTRANSFER, 1 );
-$auth = curl_exec( $curl );
-$secret = json_decode( $auth );
-$token = $secret->access_token;
+$response = curl_exec($curl);
+$http_code = curl_getinfo($curl, CURLINFO_HTTP_CODE);
+curl_close($curl);
+
+if ($http_code !== 200) {
+    die('Error: Failed to obtain access token.');
+}
+
+$token_data = json_decode($response, true);
+$access_token = $token_data['access_token'];
+
+// Clean up session state
+unset($_SESSION['wpcc_state']);
+?>
 ```
 
-`$secret` is an object that contains the `access_token` that you will use to query the users profile information.
-
-```
-stdClass Object 
-(
-    [access_token] => XXXXXXXXXXXXXXXXXXXXXXXXXXXX
-    [token_type] => bearer
-    [blog_id] => 0
-    [blog_url] => http://public-api.wordpress.com
-    [scope] => auth
-)
-```
-
-### Request user profile information
-
-After you get an access\_token you must authenticate the user on your local site. You use the `access_token` to request their profile information through the [/me/](https://developer.wordpress.com/docs/api/1/get/me/) endpoint on WordPress.com.
-
-```php
-// Get user info from WordPress.com API
-$apiUrl = 'https://public-api.wordpress.com/rest/v1.1/me';
-$headers = [
-    'Authorization: Bearer ' . $token
-];
-
-$ch = curl_init();
-curl_setopt($ch, CURLOPT_URL, $apiUrl);
-curl_setopt($ch, CURLOPT_HTTPHEADER, $headers);
-curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
-curl_setopt($ch, CURLOPT_SSL_VERIFYPEER, false); // For testing only
-$response = curl_exec($ch);
-curl_close($ch);
-
-$user = json_decode($response, true);
-
-```
-
-A typical request for profile information would return JSON encoded data with the following profile information in an object:
-
+**Successful token response**:
 ```json
 {
-  "ID": 1,
-  "display_name": "Bob",
+    "access_token": "your_access_token_here",
+    "token_type": "bearer",
+    "blog_id": 0,
+    "blog_url": "https://public-api.wordpress.com",
+    "scope": "auth"
+}
+```
+
+Note the `scope: "auth"` - this confirms the token has limited access for identity verification only.
+
+### Step 3: Retrieve User Profile
+
+With the access token, retrieve the user's profile information from the [`/me/` endpoint](https://developer.wordpress.com/docs/api/1/get/me/):
+
+```php
+<?php
+// Fetch user profile using the access token
+function get_user_profile($access_token) {
+    $curl = curl_init(USER_INFO_URL);
+    curl_setopt_array($curl, [
+        CURLOPT_HTTPHEADER => [
+            'Authorization: Bearer ' . $access_token
+        ],
+        CURLOPT_RETURNTRANSFER => true,
+        CURLOPT_SSL_VERIFYPEER => true // Always verify SSL in production
+    ]);
+    
+    $response = curl_exec($curl);
+    $http_code = curl_getinfo($curl, CURLINFO_HTTP_CODE);
+    curl_close($curl);
+    
+    if ($http_code !== 200) {
+        throw new Exception('Failed to fetch user profile');
+    }
+    
+    return json_decode($response, true);
+}
+
+// Get the user's WordPress.com profile
+try {
+    $user_profile = get_user_profile($access_token);
+    
+    // Store or process user information
+    $user_id = $user_profile['ID'];
+    $display_name = $user_profile['display_name'];
+    $email = $user_profile['email'];
+    $avatar_url = $user_profile['avatar_URL'];
+    $is_verified = $user_profile['verified'];
+    
+} catch (Exception $e) {
+    die('Error: ' . $e->getMessage());
+}
+?>
+```
+
+**Profile response format**:
+```json
+{
+  "ID": 12345,
+  "display_name": "Bob Smith",
   "username": "bobsmith",
   "email": "bob@example.com",
-  "primary_blog": 1,
-  "avatar_URL": "http://gravatar.com/avatar/xxxx?s=96",
-  "profile_URL": "http://en.gravatar.com/xxxx",
+  "primary_blog": 67890,
+  "avatar_URL": "https://gravatar.com/avatar/abc123?s=96",
+  "profile_URL": "https://en.gravatar.com/bobsmith",
   "verified": true
 }
 ```
 
-### Authenticate the user
+### Step 4: Complete User Authentication
 
-The `verified` flag in the profile is true when the user has verified their email address on WordPress.com. You should take this into consideration before using the profile. If it is false be wary of trusting the information and using it in an automated way.  
-With this information you should query your user database and log the user in if a record exists. Otherwise you may auto-generate a new account or redirect the user to a signup form. You should pre-populate as many fields as possible from the profile information above.
+Once you have the user profile, integrate them into your application:
 
-### Limits of login apps
+```php
+<?php
+// Complete user authentication flow
+if ($is_verified) {
+    // User has verified their email - safe to trust profile data
+    $existing_user = find_user_by_wpcom_id($user_id);
+    
+    if ($existing_user) {
+        // Log in existing user
+        login_user($existing_user);
+        redirect_to_dashboard();
+    } else {
+        // Create new account with WordPress.com profile data
+        $new_user = create_user([
+            'wpcom_id' => $user_id,
+            'username' => $user_profile['username'],
+            'email' => $email,
+            'display_name' => $display_name,
+            'avatar_url' => $avatar_url
+        ]);
+        login_user($new_user);
+        redirect_to_welcome();
+    }
+} else {
+    // Unverified email - handle with caution
+    redirect_to_verification_required();
+}
+?>
+```
 
-If you already have [WordPress.com apps](https://developer.wordpress.com/apps/) do not use one app for both login and interacting with a WordPress.com blog. Access tokens generated through the authenticate endpoint used in login requests only have access to the /me/ endpoint. Your users will not be able to access their blogs if they attempt to login through the same app.
+**Important**: Always check the `verified` flag before trusting profile information. Unverified accounts may contain unreliable data.
+
+## WordPress.com Connect vs Full OAuth2
+
+Understanding when to use each approach:
+
+| Feature | WordPress.com Connect | [Full OAuth2](5-oauth2-authentication.md) |
+|---------|----------------------|---------------------------|
+| **Purpose** | User authentication & identity | Full API access & content management |
+| **Endpoint** | `/oauth2/authenticate` | `/oauth2/authorize` |
+| **Token Scope** | `auth` (limited to `/me/`) | Custom scopes (`posts`, `media`, etc.) |
+| **Use Cases** | "Login with WordPress.com" | WordPress.com site management |
+| **Data Access** | Basic profile only | Blog posts, media, comments, etc. |
+
+> **Important**: Do not use the same WordPress.com application for both Connect authentication and full API access. Connect tokens are limited to the `/me/` endpoint and cannot access blog content or management features.
