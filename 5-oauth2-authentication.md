@@ -1,10 +1,10 @@
 # OAuth2 Authentication
 
-OAuth2 is a secure authentication protocol that enables applications to interact with WordPress.com sites and self-hosted WordPress sites running Jetpack without requiring users to share their sensitive credentials directly with third-party applications. This approach provides granular permission control and enhanced security for both users and developers.
+[OAuth2](https://oauth.net/2/) is a secure authentication protocol that enables applications to interact with WordPress.com sites and self-hosted WordPress sites running Jetpack without requiring users to share their sensitive credentials directly with third-party applications. This approach provides granular permission control and enhanced security for both users and developers.
 
 ## Understanding OAuth2 for WordPress.com
 
-OAuth2 represents a sophisticated authentication framework designed specifically for **third-party applications** that need controlled access to user data. [Unlike Application Passwords](#) which grant comprehensive administrative access, OAuth2 implements a **granular permission system through scopes** that allows applications to request only the specific access levels they need.
+OAuth2 represents a sophisticated authentication framework designed specifically for **third-party applications** that need controlled access to user data. [Unlike Application Passwords](https://wordpress.com/support/security/two-step-authentication/application-specific-passwords/) which grant comprehensive administrative access, OAuth2 implements a **granular permission system through scopes** that allows applications to request only the specific access levels they need.
 
 When users authorize your application through OAuth2, they authenticate using their existing WordPress.com credentials and can see exactly what permissions your application is requesting. They can then choose to grant or deny specific access levels, providing transparency and control over their data.
 
@@ -17,6 +17,8 @@ Before developing your OAuth2 application, you need to have a WordPress.com appl
 3. **Redirect URI**: Where users return after authorization
 
 You can obtain these credentials through the [WordPress.com Applications Manager](https://developer.wordpress.com/apps/).
+
+> Use [this form](https://developer.wordpress.com/apps/new/) to register a new WordPress.com Application
 
 
 ## OAuth2 endpoints
@@ -60,6 +62,9 @@ After user approval, redirects to your `redirect_uri` with:
 - **Authorization Code Flow**: `?code=AUTHORIZATION_CODE&state=YOUR_STATE`
 - **Implicit Flow**: `#access_token=TOKEN&expires_in=64800&token_type=bearer&site_id=BLOG_ID`
 - **User denial**: `?error=access_denied`
+
+> **Important Note**: The `redirect_uri` parameter must exactly match the redirect URI registered when creating your application. Even minor differences (like missing trailing slashes) will cause the authorization to fail. This is a security measure to prevent malicious redirects.
+
 
 ### Token Request Endpoint
 
@@ -119,7 +124,15 @@ curl -X POST https://public-api.wordpress.com/oauth2/token \
   -d "password=your_password_or_app_password"
 ```
 
-**Production Alternative**: For production applications, always implement the Authorization Code Flow to ensure proper user consent and security. The Password Grant should be replaced with proper OAuth2 flows before deploying your application.
+**When to stop using Password Grant:**
+
+Once your development is complete, you must switch to the proper Authorization Code Flow for production. Here's the transition plan:
+
+1. **During development**: Use Password Grant for quick testing and personal scripts
+2. **Before going live**: Implement the full OAuth2 Authorization Code Flow
+3. **In production**: Only use Authorization Code Flow to ensure user security and consent
+
+**The bottom line**: Password Grant is like using a master key during construction - it's convenient for the builders, but you wouldn't give that key to every tenant in the building. For production apps, users should control their own access through proper OAuth2 flows.
 
 **Response Format**:
 ```json
