@@ -71,16 +71,20 @@ After user approval, redirects to your `redirect_uri` with:
 **Endpoint**: `https://public-api.wordpress.com/oauth2/token`
 **Method**: POST
 
-The secure server-to-server endpoint where authorization codes are exchanged for access tokens. This endpoint validates authorization codes, confirms client secrets, and ensures redirect URI consistency.
+This secure server-to-server endpoint handles two different grant types for obtaining access tokens. Choose the appropriate grant type based on your use case:
 
-**Authorization Code Grant Parameters**:
+#### Authorization Code Grant (Production Use)
+
+Use this grant type for all production applications. It exchanges authorization codes (received from user authorization) for access tokens while keeping your client secret secure.
+
+**Required Parameters**:
 - `client_id`: Your application's client ID
 - `client_secret`: Your application's client secret
 - `code`: Authorization code from the authorization step
 - `grant_type`: Must be `"authorization_code"`
 - `redirect_uri`: Must match the authorization redirect URI
 
-**Example CURL Request** (Authorization Code Grant):
+**Example Request**:
 ```bash
 curl -X POST https://public-api.wordpress.com/oauth2/token \
   -d "client_id=12345" \
@@ -90,31 +94,29 @@ curl -X POST https://public-api.wordpress.com/oauth2/token \
   -d "redirect_uri=https://yourapp.com/callback"
 ```
 
-**Password Grant Parameters** (testing only):
+#### Password Grant (Development & Testing Only)
 
-The Password Grant flow allows application owners to obtain access tokens directly using WordPress.com credentials, bypassing the user authorization interface. This flow is **exclusively for testing and development purposes** and should never be used in production applications.
+⚠️ **Development Use Only** - This grant type allows application owners to obtain tokens directly using their WordPress.com credentials, bypassing the user authorization flow.
 
-**When to Use Password Grant**:
-- **Application testing**: When you need to quickly test API endpoints during development
-- **Automated testing**: For integration tests where simulating user authorization would be impractical
-- **Personal development**: When building applications for your own WordPress.com sites
+**Use Password Grant For**:
+- Testing API endpoints during development
+- Automated testing where user authorization simulation is impractical
+- Personal development on your own WordPress.com sites
 
-**Security Limitations**:
-- Only available to application owners (you cannot use other users' credentials)
-- Requires exposing actual WordPress.com credentials in your code
-- Bypasses the security benefits of OAuth2's user consent flow
-- Not suitable for applications used by third-party users
+**Security Restrictions**:
+- Only works with **your own** WordPress.com credentials (not other users')
+- Requires exposing credentials in your code
+- Bypasses OAuth2's user consent and security benefits
+- **Never use in production applications**
 
 **Required Parameters**:
 - `client_id`: Your application's client ID  
 - `client_secret`: Your application's client secret
 - `grant_type`: Must be `"password"`
 - `username`: Your WordPress.com username
-- `password`: Your WordPress.com password (use Application Password if 2FA enabled)
+- `password`: Your WordPress.com password (or Application Password if 2FA enabled)
 
-**Important**: If you have two-factor authentication enabled on your WordPress.com account, you must use an Application Password instead of your regular password. Application Passwords can be generated in your [WordPress.com Account Settings](https://wordpress.com/me/security).
-
-**Example CURL Request** (Password Grant - Testing Only):
+**Example Request**:
 ```bash
 curl -X POST https://public-api.wordpress.com/oauth2/token \
   -d "client_id=12345" \
@@ -124,17 +126,11 @@ curl -X POST https://public-api.wordpress.com/oauth2/token \
   -d "password=your_password_or_app_password"
 ```
 
-**When to stop using Password Grant:**
+**Two-Factor Authentication**: If you have 2FA enabled, create an Application Password in your [WordPress.com Account Settings](https://wordpress.com/me/security) and use that instead of your regular password.
 
-Once your development is complete, you must switch to the proper Authorization Code Flow for production. Here's the transition plan:
+**Migration Path**: Start with Password Grant for development convenience, but implement Authorization Code Flow before launching to production. Think of Password Grant as a development shortcut that must be replaced with proper user authorization in live applications.
 
-1. **During development**: Use Password Grant for quick testing and personal scripts
-2. **Before going live**: Implement the full OAuth2 Authorization Code Flow
-3. **In production**: Only use Authorization Code Flow to ensure user security and consent
-
-**The bottom line**: Password Grant is like using a master key during construction - it's convenient for the builders, but you wouldn't give that key to every tenant in the building. For production apps, users should control their own access through proper OAuth2 flows.
-
-**Response Format**:
+**Token Response Format** (Both Grant Types):
 ```json
 {
     "access_token": "YOUR_API_TOKEN",

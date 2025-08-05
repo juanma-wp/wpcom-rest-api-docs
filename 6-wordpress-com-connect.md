@@ -26,7 +26,7 @@ Here is a simple example of how you can connect a WordPress.com user to your app
 
 When you created your WordPress.com Application above you will have received a number of items back. Let's set those as constants to make them easy to reference. (Please replace the values of the `CLIENT_ID`, `CLIENT_SECRET` and `REDIRECT_URL` with those values from your WordPress.com Application)
 
-You could add these values on your `config.js` file 
+You could [add these values on your `config.js` file](https://github.com/Automattic/wpcom-connect-examples/blob/master/php/config.php) 
 ```php
 define('CLIENT_ID', 1);
 define('CLIENT_SECRET', 'your-client-secret');
@@ -97,6 +97,7 @@ curl_setopt( $curl, CURLOPT_POSTFIELDS, array(
 curl_setopt( $curl, CURLOPT_RETURNTRANSFER, 1 );
 $auth = curl_exec( $curl );
 $secret = json_decode( $auth );
+$token = $secret->access_token;
 ```
 
 `$secret` is an object that contains the `access_token` that you will use to query the users profile information.
@@ -116,21 +117,28 @@ stdClass Object
 
 After you get an access\_token you must authenticate the user on your local site. You use the `access_token` to request their profile information through the [/me/](https://developer.wordpress.com/docs/api/1/get/me/) endpoint on WordPress.com.
 
-```
-[sourcecode language="php"]
-&amp;amp;amp;lt;?php
-$access_token = $secret-&amp;amp;amp;gt;access_token;
+```php
+// Get user info from WordPress.com API
+$apiUrl = 'https://public-api.wordpress.com/rest/v1.1/me';
+$headers = [
+    'Authorization: Bearer ' . $token
+];
 
-$curl = curl_init( 'https://public-api.wordpress.com/rest/v1/me/' );
-curl_setopt( $curl, CURLOPT_HTTPHEADER, array( 'Authorization: Bearer ' . $access_token ) );
-curl_setopt( $curl, CURLOPT_RETURNTRANSFER, 1 );
-$me = json_decode( curl_exec( $curl ) );
-[/sourcecode]
+$ch = curl_init();
+curl_setopt($ch, CURLOPT_URL, $apiUrl);
+curl_setopt($ch, CURLOPT_HTTPHEADER, $headers);
+curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
+curl_setopt($ch, CURLOPT_SSL_VERIFYPEER, false); // For testing only
+$response = curl_exec($ch);
+curl_close($ch);
+
+$user = json_decode($response, true);
+
 ```
 
 A typical request for profile information would return JSON encoded data with the following profile information in an object:
 
-```
+```json
 {
   "ID": 1,
   "display_name": "Bob",
@@ -151,17 +159,3 @@ With this information you should query your user database and log the user in if
 ### Limits of login apps
 
 If you already have [WordPress.com apps](https://developer.wordpress.com/apps/) do not use one app for both login and interacting with a WordPress.com blog. Access tokens generated through the authenticate endpoint used in login requests only have access to the /me/ endpoint. Your users will not be able to access their blogs if they attempt to login through the same app.
-
-Last updated: April 29, 2025
-
-Ready to get started with WordPress.com?
-
-[Get started](https://wordpress.com/start/hosting?flow=new-hosted-site&ref=developer-docs)
-
----
-
-Documentation is licensed under a
-
-[Creative Commons Attribution-ShareAlike 4.0 International License](https://creativecommons.org/licenses/by-sa/4.0/)
-
-[An Automattic Creation](https://automattic.com/)
