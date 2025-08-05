@@ -25,6 +25,8 @@ WordPress.com Connect allows WordPress.com users to quickly log in to your servi
 
 **Trusted Relationship** – Allow users to sign-in with the same credentials they use every day on WordPress.com. This takes the pain out of having to remember and manage a new log-in for another service.
 
+> For practical implementation examples of WordPress.com Connect in different programming languages, check out the [wpcom-connect-examples repository](https://github.com/Automattic/wpcom-connect-examples). This repository contains sample code demonstrating how to implement "Login with WordPress.com" functionality across various languages and frameworks.
+
 ## OAuth2 Implementation Details
 
 WordPress.com Connect uses the **OAuth2 Authentication Endpoint** (`/oauth2/authenticate`) rather than the standard authorization endpoint. This specialized endpoint is optimized for identity verification and automatically limits token scope to basic profile access.

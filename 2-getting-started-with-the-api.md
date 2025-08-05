@@ -6,7 +6,9 @@ WordPress.com REST API allows you to view, create or edit content on any WordPre
 
 Some requests (e.g. listing public posts) do not need to be authenticated, but any action that would require a user to be logged in (such as creating a post) requires an authentication token. 
 
-To make authenticated requests, you’ll first need to [set up an account on WordPress.com](https://wordpress.com/start) if you don’t have one already. ==Go to [XXXXXX](#) for more info about how to make requests (non-authenticated and authenticated ones)==
+To make authenticated requests, you’ll first need to [set up an account on WordPress.com](https://wordpress.com/start) if you don’t have one already.
+
+> Looking for code examples? Check out the [WordPress.com REST API Examples repository](https://github.com/Automattic/wpcom-rest-api-examples) which contains sample projects demonstrating OAuth authentication and API usage in various programming languages and frameworks. The repository includes examples of both OAuth-based authentication for user-authorized operations and Application Password authentication for direct API endpoint access.
 
 ## How To Use It
 
@@ -319,19 +321,3 @@ If you're building a browser-based application, you'll need to:
 For detailed guidance on browser-based implementations, see [Using the REST API from JS and the Browser](7-using-the-rest-api-from-js-and-the-browser-cors.md).
 
 
-<!-- TO-DO: Provide a better way to continue the learning journey -->
-## [Next Steps](https://developer.wordpress.com/docs/api/getting-started/#2-next-steps)
-
-The [full documentation](https://developer.wordpress.com/docs/api/) is a great way to explore all the features of the API. You might also want to check out [our example apps](https://developer.wordpress.com/docs/api/rest-api-example-apps/), or familiarize yourself with the [development console](https://developer.wordpress.com/docs/api/console/).
-
-Not sure where to start? Here are a few interesting endpoints:
-
-- [GET /sites/$site/posts](https://developer.wordpress.com/docs/api/1.1/get/sites/%24site/posts/): Get a list of posts on a site. For example, the latest posts featured on [discover.wordpress.com](https://discover.wordpress.com/):  
-  `https://public-api.wordpress.com/rest/v1.1/sites/discover.wordpress.com/posts/?number=2&pretty=true`  
-- [GET /read/tags/$tag/posts](https://developer.wordpress.com/docs/api/1.1/get/read/tags/cats/posts/): Get a list of posts with a given tag. For example, recent posts about cats:  
-  `https://public-api.wordpress.com/rest/v1.1/read/tags/cats/posts?number=2&pretty=true`  
-- [GET /sites/$site/stats/top-posts](https://developer.wordpress.com/docs/api/1.1/get/sites/%24site/stats/top-posts/): View the top posts on your site (requires authentication).  
-- [GET /read/recommendations/mine](https://developer.wordpress.com/docs/api/1.1/get/read/recommendations/mine/): Get a list of blog recommendations based on blogs you’re already following (requires authentication).  
-- [POST /sites/$site/posts/new](https://developer.wordpress.com/docs/api/1.1/post/sites/%24site/posts/new/): Create a new post (requires authentication).
-
-Questions? Comments? Want to tell us about the cool stuff you’ve built with our API? [Get in touch](https://developer.wordpress.com/contact/).  
