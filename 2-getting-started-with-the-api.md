@@ -18,12 +18,12 @@ There are two ways to explore the endpoints available for WordPress.com REST API
 
 Making unauthenticated requests is simple. Since there are no special headers required, you can even open this one in your browser to see what it will return: [https://public-api.wordpress.com/rest/v1.1/sites/en.blog.wordpress.com/posts/?number=2\&pretty=true](https://public-api.wordpress.com/rest/v1.1/sites/en.blog.wordpress.com/posts/?number=2&pretty=true)
 
-Making authenticated requests requires a few more steps. To make authenticated requests, you need to provide a "Bearer" token in the Authorization header. You can obtain this token in two ways:
+Making authenticated requests requires a few more steps. You can authenticate your requests in two ways:
 
-1. **Personal Access Token** - Simple and quick for personal projects and testing
+1. **Application Passwords** - Simple and quick for personal projects and testing
 2. **OAuth2 authentication** - The most secure and granular way, required for third-party applications
 
-Both methods give you an access token that you include in your requests like this: `Authorization: Bearer YOUR_ACCESS_TOKEN`. Check the [Authentication methods](#) section for detailed instructions on both approaches.
+Application Passwords use Basic authentication (`Authorization: Basic` with username:password), while OAuth2 provides Bearer tokens (`Authorization: Bearer YOUR_ACCESS_TOKEN`). Check the [Authentication methods](#) section for detailed instructions on both approaches.
 
 We recommend OAuth2 authentication as the most secure and granular way to access the WordPress.com REST API. If you're already familiar with OAuth2, you can skip directly to the [technical documentation](https://developer.wordpress.com/docs/oauth2/).
 
@@ -207,20 +207,76 @@ curl -H "Authorization: Bearer YOUR_ACCESS_TOKEN" \
 ### Authentication Methods
 
 The WordPress.com REST API supports two primary authentication methods:
-- Personal Access Token
+- Application Passwords
 - OAuth2 Authentication
 
-#### Personal Access Token
+#### Application Passwords
 
-Personal Access Tokens provide a simple and driect way to get the token required to authenticate API requests without implementing the full OAuth2 flow. They are ideal for developers working on personal projects, command-line tools, scripts, and applications that only need to access their own WordPress.com sites. Since these tokens have the same permissions as your WordPress.com account, they should be kept secure and only used in trusted applications that you control.
+Application Passwords provide a simple and direct way to authenticate API requests without implementing the full OAuth2 flow. They are ideal for developers working on personal projects, command-line tools, scripts, and applications that only need to access their own WordPress.com sites. Since these passwords have the same permissions as your WordPress.com account, they should be kept secure and only used in trusted applications that you control.
 
-**How to get a Personal Access Token:**
+**How to get an Application Password:**
 1. Log in to your WordPress.com account
 2. Go to [Account Settings → Security](https://wordpress.com/me/security)
 3. Scroll down to "Application Passwords" section
 4. Click "Create New Application Password"
 5. Enter a descriptive name for your application
-6. Copy the generated token (you won't be able to see it again)
+6. Copy the generated password (you won't be able to see it again)
+
+**How to use Application Passwords in requests:**
+Use your WordPress.com username and the generated Application Password with HTTP Basic Authentication:
+
+```bash
+# Using curl with Basic Authentication
+curl -X GET \
+  'https://public-api.wordpress.com/rest/v1.1/sites/YOUR_SITE_ID/posts' \
+  -u 'your-wordpress-username:your-application-password' \
+  -H 'Content-Type: application/json'
+
+# Using curl with POST request
+curl -X POST \
+  'https://public-api.wordpress.com/wp/v2/sites/YOUR_SITE_ID/posts' \
+  -u 'your-wordpress-username:your-application-password' \
+  -H 'Content-Type: application/json' \
+  -d '{"title":"My New Post","content":"Post content here"}'
+
+# Or using explicit Authorization header (base64 encoded)
+curl -X GET \
+  'https://public-api.wordpress.com/rest/v1.1/sites/YOUR_SITE_ID/posts' \
+  -H 'Authorization: Basic base64(username:password)' \
+  -H 'Content-Type: application/json'
+```
+
+_Example in JavaScript_
+```javascript
+// Using JavaScript fetch with Basic Authentication
+const username = 'your-wordpress-username';
+const password = 'your-application-password';
+const credentials = btoa(`${username}:${password}`);
+
+fetch('https://public-api.wordpress.com/rest/v1.4/me', {
+  headers: {
+    'Authorization': `Basic ${credentials}`,
+    'Content-Type': 'application/json'
+  }
+})
+.then(response => response.json())
+.then(data => console.log(data));
+```
+
+_Example in PHP_
+```php
+// Using PHP with cURL and Basic Authentication
+$username = 'your-wordpress-username';
+$password = 'your-application-password';
+$curl = curl_init('https://public-api.wordpress.com/rest/v1.4/me');
+curl_setopt($curl, CURLOPT_HTTPHEADER, array(
+    'Authorization: Basic ' . base64_encode($username . ':' . $password),
+    'Content-Type: application/json'
+));
+curl_setopt($curl, CURLOPT_RETURNTRANSFER, true);
+$response = curl_exec($curl);
+$data = json_decode($response);
+```
 
 <!--
 **How to use in requests:**
@@ -302,11 +358,11 @@ For detailed OAuth2 implementation guidance, including code examples and securit
 
 #### Security Best Practices
 
-1. **Never expose tokens in client-side code** - Personal access tokens should only be used in server-side applications
-2. **Use environment variables** - Store tokens in environment variables, not in your source code
-3. **Rotate tokens regularly** - Generate new tokens periodically and revoke old ones
-4. **Use OAuth2 for user-facing apps** - Don't use personal access tokens for applications that other users will authenticate with
-5. **Limit token scope** - Only request the minimum permissions necessary for your application
+1. **Never expose credentials in client-side code** - Application passwords should only be used in server-side applications
+2. **Use environment variables** - Store usernames and passwords in environment variables, not in your source code
+3. **Rotate passwords regularly** - Generate new application passwords periodically and revoke old ones
+4. **Use OAuth2 for user-facing apps** - Don't use application passwords for applications that other users will authenticate with
+5. **Limit access scope** - Only use application passwords for applications that genuinely need full access to your account
 
 
 <!-- TO-DO: Review this section later to complement info with OAuth2 Authentication -->
@@ -314,7 +370,7 @@ For detailed OAuth2 implementation guidance, including code examples and securit
 
 If you're building a browser-based application, you'll need to:
 
-1. **Use OAuth2 implicit flow** - Personal access tokens should not be used in client-side code
+1. **Use OAuth2 implicit flow** - Application passwords should not be used in client-side code
 2. **Whitelist your domains** - Configure allowed origins in your [WordPress.com app settings](https://developer.wordpress.com/apps/)
 3. **Handle CORS properly** - The API will send appropriate CORS headers for whitelisted domains
 
