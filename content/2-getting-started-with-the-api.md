@@ -43,7 +43,6 @@ actions for this user. Keep it secret. Keep it safe.”
 Once the Client (App) has obtained the token, it can make authenticated requests to WordPress.com. Here's how a typical interaction works:
 
 - _**Client (App):**_ "Hello WordPress.com, I'd like to create a new post. Here's my access token proving I'm authorized to act on behalf of the user, along with the post title, content, and other details."
-
 - **WordPress.com:** "I've validated your token and confirmed you have permission to create posts. The post has been successfully created and published. Here's the response with the new post ID, URL, and other metadata."
 
 This OAuth2 token-based authentication workflow provides secure, granular access control - the Client can only perform actions that the user explicitly authorized during the OAuth flow. The token can be revoked at any time if needed, and WordPress.com validates the token's permissions on every request.
