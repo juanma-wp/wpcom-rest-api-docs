@@ -10,7 +10,7 @@ To make authenticated requests, you’ll first need to [set up an account on Wor
 
 > Looking for code examples? Check out the [WordPress.com REST API Examples repository](https://github.com/Automattic/wpcom-rest-api-examples) which contains sample projects demonstrating OAuth authentication and API usage in various programming languages and frameworks. The repository includes examples of both OAuth-based authentication for user-authorized operations and Application Password authentication for direct API endpoint access.
 
-## How To Use It
+## Introduction to using the REST API
 
 There are two ways to explore the endpoints available for WordPress.com REST API:
 -  The [REST API Reference docs page](developer.wordpress.com/docs/api/reference) lists available endpoints and details the input and output of each one, along with example code in curl and PHP. 
